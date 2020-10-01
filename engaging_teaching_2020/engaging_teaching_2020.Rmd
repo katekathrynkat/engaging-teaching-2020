@@ -128,7 +128,7 @@ This app contains two example R labs, modified from EEMB 148 (Stream Ecology) ma
 
 [Example 2: Case Study](katekathrynkat.shinyapps.io/engaging_teaching_2020/#section-example-2-case-study)
 
-- This lab allows students to run simple statisticial analyses and create associated data visualizations using data from a case study. The tutorial app is paired with an accompanying [R script](www.google.com) that advanced students can modify using RStudio Cloud or RStudio. Using either the tutorial or the script, students interpret the data in order to answer accompanying homework questions or write a report.
+- This lab allows students to run simple statisticial analyses and create associated data visualizations using data from a case study. The tutorial app is paired with an accompanying [R script](github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script/companion_script.R) that advanced students can modify using RStudio Cloud or RStudio. Using either the tutorial or the script, students interpret the data in order to answer accompanying homework questions or write a report.
 
 ## Example 1: Intro to R
 
@@ -282,7 +282,7 @@ This R lab provides a platform for students to carry out basic data analysis and
 The students' goal is to evaluate water quality measurements taken from six locations along a river, which they then use to answer homework questions.
 
 To view the original R lab, click [here.](katekathrynkat.shinyapps.io/eemb148_HW1)
-To view the companion R script, click [here.](google.com)
+To view the companion R script, click [here.](github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script/companion_script.R)
 
 ###
 
