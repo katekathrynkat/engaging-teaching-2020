@@ -20,6 +20,12 @@ library(kableExtra)
 library(lubridate)
 library(plotly)
 library(agricolae)
+library(calecopal)
+library(cowplot)
+
+
+# Data for feedback analysis
+feedback <- read_csv('student_feedback_fall2020.csv')
 
 # Data for Intro to R:
 water <- read_csv('goleta_rainfall_discharge.csv') %>% 
@@ -78,13 +84,39 @@ knitr::include_graphics('images/stormyr.gif')
 
 Undergraduate ecology courses often try to incorporate as much of the authentic scientific process as possible, from data collection in the field to analysis and interpretation of results. Unfortunately, **the statistical experience of students coming into these courses can vary wildly.** While attempting to meet the needs of all students, many courses resort to using outdated statistical softwares. Although these do not require coding by students, they are often finicky to use and not longer relevant in the workforce.
 
+```{r echo=FALSE, warning=FALSE}
+
+experience <- feedback %>% 
+  select(previous_experience) %>% 
+  separate(previous_experience, c('exp1', 'exp2', 'exp3', 'exp4'), sep = ', ') %>% 
+  pivot_longer(1:4, values_to = 'experience', values_drop_na = TRUE) %>% 
+  mutate(experience=factor(experience, levels = c('No statistics experience',
+                                                  'High school statistics course',
+                                                  'Tentative R user',
+                                                  'Have R and R Studio installed',
+                                                  'Confident R user',
+                                                  'Biometry (EEMB 146)'))) %>% 
+  group_by(experience) %>% 
+  tally() %>% 
+  mutate(percent = paste0(round(n/90*100, 0), '%'))
+
+kable(experience[-2],
+      col.names = c('Prior statistical experience', 'Students'),
+      caption = '***Results from an end-of-course student survey (90 responses).*** *Students reported a wide range of prior statistical knowledge.*') %>% 
+  kable_styling(bootstrap_options = c('striped', 'condensed'),
+                full_width = FALSE,
+                position = 'center') %>% 
+  column_spec(1, width = '7cm')
+  
+```
+
+The statistical programming language **R** is broadly used in ecology and other data science fields, and therefore is an important skill for students to learn. Unfortunately, R is not friendly for beginners, and the challenge of learning a coding language and statistical skills on top of field-specific course material can prove overwhelming. Since the learning objectives of most ecology courses are primarily focused on **interpreting statistical results in a biological context**, there is a need for a streamlined and user-friendly statistical tool for the classroom that still allows the growth of more advanced students.
+
 ```{r field_trip, echo=FALSE, fig.show="hold", out.width="50%", fig.align="default"}
 knitr::include_graphics('images/field_1.jpg')
 knitr::include_graphics('images/field_2.jpg')
 ```
 *Students collecting data during field trips to San Roque Creek and Rattlesnake Canyon near Santa Barbara, CA.*
-
-The statistical programming language **R** is broadly used in ecology and other data science fields, and therefore is an important skill for students to learn. Unfortunately, R is not friendly for beginners, and the challenge of learning a coding language and statistical skills on top of field-specific course material can prove overwhelming. Since the learning objectives of most ecology courses are primarily focused on **interpreting statistical results in a biological context**, there is a need for a streamlined and user-friendly statistical tool for the classroom that still allows the growth of more advanced students.
 
 ---
 
@@ -109,7 +141,7 @@ $\Longrightarrow$  **Accessible via any web browser**
 $\Longrightarrow$  **Adjustable by skill level**
 
 - *The R novice:* interacts with R entirely through tutorial web app
-- *The semi-confident R user:* modifies the provided code in the tutorial interface, [RStudio Cloud](rstudio.cloud), or RStudio
+- *The semi-confident R user:* modifies the provided code in the tutorial interface, [RStudio Cloud](https://rstudio.cloud), or RStudio
 - *The R expert:* writes their own code in RStudio Cloud or RStudio with the provided datasets
 
 $\Longrightarrow$  **Tailored to fit course material**
@@ -118,17 +150,158 @@ $\Longrightarrow$  **Tailored to fit course material**
 
 ---
 
+### **Do they work?**
+
+We tested the feasability of R labs during a remotely-taught quarter at UCSB. We used a series of R labs for teaching the section component of Stream Ecoclogy (EEMB 148) in spring quarter 2020. After the course, we distributed an end-of-course survey to judge effectiveness of the R labs and pinpoint areas of improvement. 90 students (out of 130) completed the survey; selected quotes and summary figures are below.
+
+<br>
+
+#### Positive feedback
+
+- *"I enjoyed the R tutorials a lot. I thought they were very well made. I liked how clear and focused they were. It made the statistics as bite sized as possible where i could focus on the ecology which was really cool."*
+- *"It was fun to learn about real world efforts and real world ideas. The R tutorials honestly made the class a lot more understandable."*
+
+<br>
+
+#### Ease of use and difficulty of material
+
+Survey questions:
+
+*- Please rate the ease of navigation of the tutorial.*
+*- Please rate the difficulty of the tutorial content.*
+
+```{r echo=FALSE, fig.align="center", fig.width=7, fig.height=3}
+
+# Navigation
+fig_nav <- feedback %>% 
+  mutate(tut_navigation=factor(tut_navigation)) %>% 
+  group_by(tut_navigation) %>% 
+  tally() %>% 
+  mutate(percent = round(n/sum(n)*100)) %>% 
+  ggplot(aes(x = 1, y = percent, fill = tut_navigation)) +
+    geom_bar(width = 1.3, stat = 'identity') +
+    scale_fill_manual(values = rev(cal_palette("kelp1"))) +
+    geom_label(aes(x = 2, label = paste0(percent, '%')),
+               position = position_stack(vjust = 0.5),
+               alpha = 0.4, color = NA) +
+    geom_text(aes(x = 2, label = paste0(percent, '%')),
+              position = position_stack(vjust = 0.5), fontface = 'bold') +
+    ggtitle('Tutorial navigation') +
+    theme_void() +
+    theme(legend.position = 'none',
+          plot.title = element_text(hjust = 0.5)) +
+    coord_polar('y', start = 0, direction = -1)
+
+# Difficulty
+fig_mat <- feedback %>% 
+  mutate(tut_difficulty=factor(tut_difficulty, levels=unique(tut_navigation))) %>% 
+  group_by(tut_difficulty) %>% 
+  tally() %>% 
+  mutate(percent = round(n/sum(n)*100)) %>% 
+  ggplot(aes(x = 1, y = percent, fill = tut_difficulty)) +
+    geom_bar(width = 1.3, stat = 'identity') +
+    scale_fill_manual(drop = FALSE,
+                      values = rev(cal_palette("kelp1"))) +
+    geom_label(aes(x = 2, label = paste0(percent, '%')),
+               position = position_stack(vjust = 0.5),
+               alpha = 0.4, color = NA) +
+    geom_text(aes(x = 2, label = paste0(percent, '%')),
+               position = position_stack(vjust = 0.5), fontface = 'bold') +
+    ggtitle('Tutorial content') +
+    theme_void() +
+    theme(legend.position = 'none',
+          plot.title = element_text(hjust = 0.5)) +
+    coord_polar('y', start = 0, direction = -1)
+
+# Legend
+fig_legend <- feedback %>% 
+  mutate(tut_navigation=factor(tut_navigation)) %>% 
+  group_by(tut_navigation) %>% 
+  tally() %>% 
+  ggplot(aes(x = '', y = n, fill = tut_navigation)) +
+    geom_bar(stat = 'identity') +
+    scale_fill_manual(values = rev(cal_palette("kelp1")),
+                      labels = c('1 = Very easy', '2', '3', '4', '5 = Very difficult')) +
+    theme_void() +
+    theme(legend.title = element_blank(),
+          legend.text = element_text(size = 12))
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+legend <- extract_legend(fig_legend)
+
+plot_grid(fig_nav, fig_mat, legend,
+          nrow = 1, rel_widths = c(1,1,0.6))
+
+```
+
+<br>
+
+#### Perceived usefulness
+
+Survey question:
+
+*- How useful will skills from the R tutorial be to your development as a scientist?*
+
+```{r echo=FALSE, fig.align="center", fig.height=3, fig.width=4}
+
+# Usefulness
+feedback %>% 
+  mutate(usefulness=factor(usefulness)) %>% 
+  group_by(usefulness) %>% 
+  tally() %>% 
+  mutate(percent = round(n/sum(n)*100)) %>% 
+  ggplot(aes(x = '', y = percent, fill = usefulness)) +
+    geom_bar(width = 1.3, stat = 'identity') +
+    scale_fill_manual('',
+                      values = rev(cal_palette("casj")),
+                      labels = c('1 = Not useful', '2', '3', '4', '5 = Very useful')) +
+    geom_text(aes(x = 2, label = paste0(percent, '%')),
+              position = position_stack(vjust = 0.5), fontface = 'bold') +
+    theme_void() +
+    theme(legend.text = element_text(size = 12)) +
+    coord_polar('y', start = 0)
+
+```
+
+<br>
+
+#### Areas for improvement
+
+**More challenging options for students with prior coding experience**
+
+- *"It would be helpful to make a little more challenging forcing student to produce some of the code on their own maybe like on the 3rd or 4th assignments as they get more comfortable."*
+- *"The R-tutorial is awesome for those with very little R experience, but doesn't do much to enhance our coding skills. It's really great and easy to use, but if there was a way to engage more with the coding without being totally alone with it (I know you provided the data for our use without the tutorial), that would be cool."*
+-*"I thought the R tutorial was perfect and the instructions told us everything we needed to do. The only thing I can think of with improving the R tutorial would be creating another R tutorial for people who want to learn more about R tutorial and how to write their own code. This would just be an optional assignment or you could maybe make an extra credit assignment for students who write their own code."*
+
+**Additional explanations to emphasize connection to class material**
+
+- *"Some of the explanations could have been a bit more in depth to make them easier to navigate."*
+- *"Be a little more clear about how we obtain the information required to accurately answer the hw questions."*
+- *"I think R tutorial wasn’t hard to use but I did find the instructions were difficult because we learned what ANOVA and tukey tests were but when it came down to the 2nd or 3rd assignment I forgot how to interpret it so it would have been nice to have more information in the slides."*
+
+**Additional information for those new to R**
+
+- *"Maybe make comments on the lines of code just in case students are interested in knowing exactly what they do in R."*
+- *"More emphasis on understanding the code would be helpful. Possibly coding some sections with guidance."*
+- *"The R tutorial was very easy to use, it might be useful to learn some of what the code actually is doing for those who have not used R."*
+
+---
+
 ### **Example R labs**
 
 This app contains two example R labs, modified from EEMB 148 (Stream Ecology) materials:
 
-[Example 1: Intro to R](katekathrynkat.shinyapps.io/engaging_teaching_2020/#section-example-1-intro-to-r)
+[Example 1: Intro to R](https://katekathrynkat.shinyapps.io/engaging_teaching_2020/#section-example-1-intro-to-r)
 
 - This lab is a brief walk-through of R, meant to provide a primer to students who have had no R experience. As an introductory guide, there is no accompanying assignment.
 
-[Example 2: Case Study](katekathrynkat.shinyapps.io/engaging_teaching_2020/#section-example-2-case-study)
+[Example 2: Case Study](https://katekathrynkat.shinyapps.io/engaging_teaching_2020/#section-example-2-case-study)
 
-- This lab allows students to run simple statisticial analyses and create associated data visualizations using data from a case study. The tutorial app is paired with an accompanying [R script](github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script/companion_script.R) that advanced students can modify using RStudio Cloud or RStudio. Using either the tutorial or the script, students interpret the data in order to answer accompanying homework questions or write a report.
+- This lab allows students to run simple statisticial analyses and create associated data visualizations using data from a case study. The tutorial app is paired with an accompanying [R script](https://github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script.R) that advanced students can modify using RStudio Cloud or RStudio. Using either the tutorial or the script, students interpret the data in order to answer accompanying homework questions or write a report.
 
 ## Example 1: Intro to R
 
@@ -140,7 +313,7 @@ This R lab introduces students to R by exploring some of its uses:
 - Running statistical tests
 - Creating interactive graphs
 
-To view the original R lab, click [here.](katekathrynkat.shinyapps.io/eemb148_intro_to_r)
+To view the original R lab, click [here.](https://katekathrynkat.shinyapps.io/eemb148_intro_to_r)
 
 ### 
 
@@ -281,8 +454,8 @@ This R lab provides a platform for students to carry out basic data analysis and
 
 The students' goal is to evaluate water quality measurements taken from six locations along a river, which they then use to answer homework questions.
 
-To view the original R lab, click [here.](katekathrynkat.shinyapps.io/eemb148_HW1)
-To view the companion R script, click [here.](github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script/companion_script.R)
+To view the original R lab, click [here.](https://katekathrynkat.shinyapps.io/eemb148_HW1)
+To view the companion R script, click [here.](https://github.com/katekathrynkat/engaging-teaching-2020/blob/master/companion_script.R)
 
 ###
 
@@ -405,7 +578,7 @@ print(chem_tukey$groups)
 
 **Monsters and R gifs**
 
-- Courtesy of the incomparable [Allison Horst.](github.com/allisonhorst/stats-illustrations)
+- Courtesy of the incomparable [Allison Horst.](https://github.com/allisonhorst/stats-illustrations)
 
 ```{r monster_support, echo=FALSE, out.height="100%", out.width="100%"}
 knitr::include_graphics('images/monster_support.jpg')
